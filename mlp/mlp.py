@@ -76,10 +76,10 @@ def buildModel():
     ])
 #Relu tanh
     model.compile(optimizer='adadelta',
-                loss=tf.keras.losses.Huber(),
+                loss=tf.keras.losses.SparseCategoricalCrossentropy(),
                 metrics=['accuracy'])
     
-    history = model.fit(images, labels, epochs = 4, validation_data = (verImg, verLabels), shuffle = True)
+    history = model.fit(images, labels, epochs = 3, validation_data = (verImg, verLabels), shuffle = True)
     plt.subplot(211)
     plt.title('Loss')
     plt.plot(history.history['loss'], label='train')
