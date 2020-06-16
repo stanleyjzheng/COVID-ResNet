@@ -7,3 +7,4 @@ nvidia-machine-learning-repo-ubuntu1804_1.0.0-1_amd64.deb
 testing.py
 verificationmaker.py
 testing.py
+makedataset.py
