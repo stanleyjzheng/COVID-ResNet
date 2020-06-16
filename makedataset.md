@@ -1,4 +1,4 @@
-###Creating the Dataset
+## Creating the Dataset
 
 I am using a combination of 4 opensource COVID-19 datasets. 
 * https://github.com/ieee8023/covid-chestxray-dataset
