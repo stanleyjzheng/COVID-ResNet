@@ -1,4 +1,4 @@
-#Regular ResNet18, adapted from ResNet50 and updated from ResNet18v1 (different, much improved architecture)
+#Batch normalized version of ResNet18v2
 import os
 import pandas as pd
 import numpy as np
@@ -10,9 +10,6 @@ import shutil
 from cv2 import cv2
 from keras import layers
 from keras import models
-
-#log_dir = "logs/fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir='logs', histogram_freq=1)
 
 tf.config.experimental.list_physical_devices('GPU')
 print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
@@ -62,8 +59,8 @@ def processImages(normalImages = normalImages, covidImages = covidImages): #conv
     labels = np.asarray(labels)
     verImg = np.asarray(verImg)
     verLabels = np.asarray(verLabels)
-#    images = np.expand_dims(images, axis=3)# This line and the line below are only needed for black and white
-#    verImg = np.expand_dims(verImg, axis = 3)
+  #  images = np.expand_dims(images, axis=3)
+  #  verImg = np.expand_dims(verImg, axis = 3)
     labels = [1 if x=='COVID-19' else x for x in labels]
     labels = [0 if x=='NORMAL' else x for x in labels]
     labels = np.asarray(labels)
@@ -84,7 +81,7 @@ def residual_network(x):
 
     def add_common_layers(y):
         y = layers.BatchNormalization()(y)
-        y = layers.LeakyReLU()(y)#THIS SHOULD BE UNCOMMENTED BUT IT RUINS THE PARAM COUNT
+        y = layers.LeakyReLU()(y)
         return y
     
     def grouped_convolution(y, nb_channels, _strides):
@@ -94,20 +91,20 @@ def residual_network(x):
         shortcut = y
 
         y = layers.Conv2D(nb_channels_in, kernel_size=(3, 3), strides=(1, 1), padding='same')(y)
-#        y = add_common_layers(y)
+        y = add_common_layers(y)
         y = grouped_convolution(y, nb_channels_in, _strides=_strides)
-#        y = add_common_layers(y)
+        y = add_common_layers(y)
         #batch normalization is employed after aggregating the transformations and before adding to the shortcut
-#        y = layers.BatchNormalization()(y)
+        y = layers.BatchNormalization()(y)
         if _project_shortcut or _strides != (1, 1):
             shortcut = layers.Conv2D(nb_channels_out, kernel_size=(1, 1), strides=_strides, padding='same')(shortcut)
             shortcut = layers.BatchNormalization()(shortcut)
         y = layers.add([shortcut, y])
-#        y = layers.LeakyReLU()(y) #THIS SHOULD ALSO BE UNCOMMENTED
+        y = layers.LeakyReLU()(y)
         return y
 
     x = layers.Conv2D(64, kernel_size=(7, 7), strides=(2, 2), padding='same')(x)
-#    x = add_common_layers(x)
+    x = add_common_layers(x)
     x = layers.MaxPool2D(pool_size=(3, 3), strides=(2, 2), padding='same')(x)
     for i in range(2):
         project_shortcut = True if i == 0 else False
@@ -130,9 +127,12 @@ def residual_network(x):
 processImages()
 image_tensor = layers.Input(shape=(img_height, img_width, img_channels))
 network_output = residual_network(image_tensor)
+
 model = models.Model(inputs=[image_tensor], outputs=[network_output])
-print(model.summary())
+
 model.compile(optimizer = 'SGD', loss=keras.losses.SparseCategoricalCrossentropy(from_logits=True), metrics = ['accuracy'])
 
-history = model.fit(images, labels, epochs = 3, validation_data = (verImg, verLabels), shuffle = True)#, callbacks = [tensorboard_callback])
+model.fit(images, labels, epochs = 2, validation_data = (verImg, verLabels), shuffle = True)#, callbacks = [tensorboard_callback])
+model.save('ResNet18v2.1Pretrained.h5')
 
+#print(model.summary())

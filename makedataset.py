@@ -3,12 +3,10 @@ from imutils import paths
 import shutil
 import pandas as pd
 '''please see createdataset.md before running this.'''
-'''Before running this, you must create a directory called "data". Inside data must be 3 folders, one called "COVID-19", another called "NORMAL", a third called "COVIDVERIFICATION", and a fourth named "NORMALVERIFICATION"'''
 
 workingDirectory = os.path.dirname(os.path.realpath(__file__)) #This assumes your datsets were cloned into the same directory as this makedataset.py file. Change this to the directory of your datasets if this is not the case
 covidPath = os.path.sep.join([f'{workingDirectory}', 'COVID-19 Radiography Database', 'COVID-19'])# Uses COVID-19 Radiography Database as root folder. Should probably change this to data/covid19, etc. 
 normalPath = os.path.sep.join([f'{workingDirectory}', 'COVID-19 Radiography Database', 'NORMAL'])#
-testPath = os.path.sep.join([f'{workingDirectory}', 'COVID-19 Radiography Database', 'VERIFICATION'])
 
 def makeDataset(workingDirectory = workingDirectory): #Combines all COVID images into one singular dataset to make it easier to process
     print('starting, please be patient. This can take a few minutes. ')
