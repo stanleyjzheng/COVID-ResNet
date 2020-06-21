@@ -8,11 +8,13 @@ import tensorflow as tf
 from tensorflow import keras
 import shutil
 from cv2 import cv2
-from keras import layers
-from keras import models
+from tensorflow.keras import layers
+from tensorflow.keras import models
 
-tf.config.experimental.list_physical_devices('GPU')
+gpus = tf.config.experimental.list_physical_devices('GPU')
 print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
+for gpu in gpus:
+    tf.config.experimental.set_memory_growth(gpu, True)
 
 keras.backend.clear_session()
 workingDirectory = os.path.split(os.path.dirname(os.path.realpath(__file__)))[0]
@@ -59,8 +61,6 @@ def processImages(normalImages = normalImages, covidImages = covidImages): #conv
     labels = np.asarray(labels)
     verImg = np.asarray(verImg)
     verLabels = np.asarray(verLabels)
-  #  images = np.expand_dims(images, axis=3)
-  #  verImg = np.expand_dims(verImg, axis = 3)
     labels = [1 if x=='COVID-19' else x for x in labels]
     labels = [0 if x=='NORMAL' else x for x in labels]
     labels = np.asarray(labels)
@@ -130,9 +130,21 @@ network_output = residual_network(image_tensor)
 
 model = models.Model(inputs=[image_tensor], outputs=[network_output])
 
-model.compile(optimizer = 'SGD', loss=keras.losses.SparseCategoricalCrossentropy(from_logits=True), metrics = ['accuracy'])
+opt = tf.keras.optimizers.SGD(learning_rate = 0.02, nesterov = True, momentum = 0.9)
+model.compile(optimizer = opt, loss=keras.losses.SparseCategoricalCrossentropy(from_logits = True), metrics = ['accuracy'])
 
-model.fit(images, labels, epochs = 2, validation_data = (verImg, verLabels), shuffle = True)#, callbacks = [tensorboard_callback])
-model.save('ResNet18v2.1Pretrained.h5')
-
+history = model.fit(images, labels, epochs = 100, validation_data = (verImg, verLabels), batch_size = 64)#, callbacks = [tensorboard_callback])
+#model.save('Desktop/Learning/ResNet18v2.1Pretrained', save_format='tf')
+plt.subplot(211)
+plt.title('Loss')
+plt.plot(history.history['loss'], label='train')
+plt.plot(history.history['val_loss'], label='verification')
+plt.legend()
+# plot accuracy during training
+plt.subplot(212)
+plt.title('Accuracy')
+plt.plot(history.history['accuracy'], label='train')
+plt.plot(history.history['val_accuracy'], label='verification')
+plt.legend()
+plt.show()
 #print(model.summary())
