@@ -7,8 +7,11 @@ I am using a combination of 4 opensource COVID-19 datasets.
 * https://www.kaggle.com/tawsifurrahman/covid19-radiography-database
 
 To start, execute the following commands to clone the github repositories. Make sure your current directory is the clone of my repo.
+
 `git clone https://github.com/ieee8023/covid-chestxray-dataset`
+
 `git clone https://github.com/agchung/Figure1-COVID-chestxray-dataset`
+
 `git clone https://github.com/agchung/Actualmed-COVID-chestxray-dataset`
 
 The Kaggle dataset must be downloaded and unzipped to the same location. Navigate to where the Kaggle dataset was downloaded, and find the 'COVID-19' and 'NORMAL' folders. Create a 'VERIFICATION' file alongside them. 
