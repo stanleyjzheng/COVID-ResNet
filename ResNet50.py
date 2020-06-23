@@ -36,6 +36,7 @@ def processImages(normalImages = normalImages, covidImages = covidImages): #conv
         image = cv2.resize(image,(227, 227))
         images.append(image)
         labels.append(label)
+    print('Finished copying COVID-19 images')
     for i in normalImages:
         label = i.split(os.path.sep)[-2]
         image = cv2.imread(i)
@@ -43,12 +44,14 @@ def processImages(normalImages = normalImages, covidImages = covidImages): #conv
         image = cv2.resize(image,(227, 227))
         images.append(image)
         labels.append(label)
+    print('Finished copying normal images')
     for (index, row) in pd.read_csv(os.path.sep.join([f'{workingDirectory}', 'verification.csv'])).iterrows():
         verLabels.append(row['finding'])
         image = cv2.imread(os.path.sep.join([f'{workingDirectory}', 'COVID-19 Radiography Database', 'VERIFICATION', str(row['filename'])]))
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         image = cv2.resize(image,(227, 227))
         verImg.append(image)
+    print('Finished copying verification images')
     images = np.asarray(images)
     labels = np.asarray(labels)
     verImg = np.asarray(verImg)
@@ -62,7 +65,10 @@ def processImages(normalImages = normalImages, covidImages = covidImages): #conv
     verLabels = np.asarray(verLabels)
     images = images / 255.0
     verImg = verImg / 255.0
-#
+    print('Number of COVID train files:',str(len(covidImages)))
+    print('Number of normal train files',str(len(normalImages)))
+    print('Number of verification images', str(len(list(paths.list_images(f'{verificationPath}')))))
+
 #
 # image dimensions
 #
@@ -113,7 +119,7 @@ def residual_network(x):
         strides = (2, 2) if i == 0 else (1, 1)
         x = residual_block(x, 1024, 2048, _strides=strides)
     x = layers.GlobalAveragePooling2D()(x)
-    x = layers.Dense(2)(x)
+    x = layers.Dense(1, activation = 'sigmoid')(x)
     return x
 
 
@@ -124,6 +130,7 @@ network_output = residual_network(image_tensor)
 
 model = models.Model(inputs=[image_tensor], outputs=[network_output])
 
-model.compile(optimizer = 'SGD', loss=keras.losses.SparseCategoricalCrossentropy(from_logits=True), metrics = ['accuracy'])
+model.compile(optimizer = 'SGD', loss=keras.losses.BinaryCrossentropy(), metrics = ['accuracy'])
+model.save('ResNet50Pretrained.h5')
 
 history = model.fit(images, labels, epochs = 3, validation_data = (verImg, verLabels), shuffle = True)#, callbacks = [tensorboard_callback])

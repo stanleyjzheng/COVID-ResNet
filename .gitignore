@@ -1,11 +1,4 @@
 **/covid-chestxray-dataset/
 **/COVID-19 Radiography Database/
-cuda-repo-ubuntu1804_10.2.89-1_amd64.deb
-nvidia-machine-learning-repo-ubuntu1804_1.0.0-1_amd64.deb
 **/Figure1-COVID-chestxray-dataset
 **/Actualmed-COVID-chestxray-dataset
-testing.py
-verificationmaker.py
-testing.py
-makedataset.py
-**/nonprod/
