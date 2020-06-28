@@ -1,98 +1,52 @@
-import os
-import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-from imutils import paths
 import tensorflow as tf
 from tensorflow import keras
-import shutil
-from cv2 import cv2
 from keras import layers
 from keras import models
-tf.config.experimental.list_physical_devices('GPU')
+import sys
+import os
+
+sys.path.append(os.path.dirname(os.path.realpath(__file__)))
+from loaddataset import processImages
+
+#
+#Comment the next 4 lines if you are not using a GPU
+gpus = tf.config.experimental.list_physical_devices('GPU')
 print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
+for gpu in gpus:
+    tf.config.experimental.set_memory_growth(gpu, True)
 
 keras.backend.clear_session()
-workingDirectory = os.path.split(os.path.dirname(os.path.realpath(__file__)))[0]
-covidPath = os.path.sep.join([f'{workingDirectory}', 'COVID-19 Radiography Database', 'COVID-19'])
-normalPath = os.path.sep.join([f'{workingDirectory}', 'COVID-19 Radiography Database', 'NORMAL'])
-verificationPath = os.path.sep.join([f'{workingDirectory}', 'COVID-19 Radiography Database', 'VERIFICATION'])
-normalImages = list(paths.list_images(f'{normalPath}'))
-covidImages = list(paths.list_images(f'{covidPath}'))
-images = []
-labels = []
-verImg = []
-verLabels = []
+workingDirectory = os.path.dirname(os.path.realpath(__file__))
+imgDimensions = 224
 
-def processImages(normalImages = normalImages, covidImages = covidImages): #converts image directories to resized greyscale numpy arrays
-    global images
-    global labels
-    global verImg
-    global verLabels
-    for i in covidImages:
-        label = i.split(os.path.sep)[-2]
-        image = cv2.imread(i)
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        image = cv2.resize(image,(227, 227))
-        images.append(image)
-        labels.append(label)
-    print('Finished copying COVID-19 images')
-    for i in normalImages:
-        label = i.split(os.path.sep)[-2]
-        image = cv2.imread(i)
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        image = cv2.resize(image,(227, 227))
-        images.append(image)
-        labels.append(label)
-    print('Finished copying normal images')
-    for (index, row) in pd.read_csv(os.path.sep.join([f'{workingDirectory}', 'verification.csv'])).iterrows():
-        verLabels.append(row['finding'])
-        image = cv2.imread(os.path.sep.join([f'{workingDirectory}', 'COVID-19 Radiography Database', 'VERIFICATION', str(row['filename'])]))
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        image = cv2.resize(image,(227, 227))
-        verImg.append(image)
-    print('Finished copying verification images')
-    images = np.asarray(images)
-    labels = np.asarray(labels)
-    verImg = np.asarray(verImg)
-    verLabels = np.asarray(verLabels)
-
-    labels = [1 if x=='COVID-19' else x for x in labels]
-    labels = [0 if x=='NORMAL' else x for x in labels]
-    labels = np.asarray(labels)
-    verLabels = [1 if x=='COVID-19' else x for x in verLabels]
-    verLabels = [0 if x=='normal' else x for x in verLabels]
-    verLabels = np.asarray(verLabels)
-    images = images / 255.0
-    verImg = verImg / 255.0
-    print('Number of COVID train files:',str(len(covidImages)))
-    print('Number of normal train files',str(len(normalImages)))
-    print('Number of verification images', str(len(list(paths.list_images(f'{verificationPath}')))))
+images, labels, verImg, verLabels = processImages(workingDirectory, imgDimensions) #Load from loaddatset.py
 
 #
 # image dimensions
+# default resnet18 dimensions are 224x224x3 (https://bit.ly/2VaOcyz)
 #
 
-img_height = 227
-img_width = 227
+img_height = imgDimensions
+img_width = imgDimensions
 img_channels = 3
 
-def residual_network(x):
+def resNet(x):
 
-    def add_common_layers(y):
+    def commonLayers(y):
         y = layers.BatchNormalization()(y)
         y = layers.LeakyReLU()(y)
         return y
 
-    def grouped_convolution(y, nb_channels, _strides):
+    def groupedConvolution(y, nb_channels, _strides):
         return layers.Conv2D(nb_channels, kernel_size=(3, 3), strides=_strides, padding='same')(y)
 
-    def residual_block(y, nb_channels_in, nb_channels_out, _strides=(1, 1), _project_shortcut=False):
+    def resBlock(y, nb_channels_in, nb_channels_out, _strides=(1, 1), _project_shortcut=False):
         shortcut = y
         y = layers.Conv2D(nb_channels_in, kernel_size=(1, 1), strides=(1, 1), padding='same')(y)
-        y = add_common_layers(y)
-        y = grouped_convolution(y, nb_channels_in, _strides=_strides)
-        y = add_common_layers(y)
+        y = commonLayers(y)
+        y = groupedConvolution(y, nb_channels_in, _strides=_strides)
+        y = commonLayers(y)
         y = layers.Conv2D(nb_channels_out, kernel_size=(1, 1), strides=(1, 1), padding='same')(y)
         # batch normalization is employed after aggregating the transformations and before adding to the shortcut
         y = layers.BatchNormalization()(y)
@@ -104,27 +58,24 @@ def residual_network(x):
         return y
     
     x = layers.Conv2D(64, kernel_size=(7, 7), strides=(2, 2), padding='same')(x)
-    x = add_common_layers(x)
+    x = commonLayers(x)
     x = layers.MaxPool2D(pool_size=(3, 3), strides=(2, 2), padding='same')(x)
     for i in range(3):
         project_shortcut = True if i == 0 else False
-        x = residual_block(x, 128, 256, _project_shortcut=project_shortcut)
+        x = resBlock(x, 128, 256, _project_shortcut=project_shortcut)
     for i in range(4):
         strides = (2, 2) if i == 0 else (1, 1)
-        x = residual_block(x, 256, 512, _strides=strides)
+        x = resBlock(x, 256, 512, _strides=strides)
     for i in range(6):
         strides = (2, 2) if i == 0 else (1, 1)
-        x = residual_block(x, 512, 1024, _strides=strides)
+        x = resBlock(x, 512, 1024, _strides=strides)
     for i in range(3):
         strides = (2, 2) if i == 0 else (1, 1)
-        x = residual_block(x, 1024, 2048, _strides=strides)
+        x = resBlock(x, 1024, 2048, _strides=strides)
     x = layers.GlobalAveragePooling2D()(x)
     x = layers.Dense(1, activation = 'sigmoid')(x)
     return x
 
-
-
-processImages()
 image_tensor = layers.Input(shape=(img_height, img_width, img_channels))
 network_output = residual_network(image_tensor)
 
