@@ -84,4 +84,4 @@ model = models.Model(inputs=[image_tensor], outputs=[network_output])
 model.compile(optimizer = 'SGD', loss=keras.losses.BinaryCrossentropy(), metrics = ['accuracy'])
 model.save('ResNet50Pretrained.h5')
 
-history = model.fit(images, labels, epochs = 3, validation_data = (verImg, verLabels), shuffle = True)#, callbacks = [tensorboard_callback])
+model.fit(images, labels, epochs = 3, validation_data = (verImg, verLabels), shuffle = True)
