@@ -12,9 +12,8 @@ sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 
 #
 # Comment the next 4 lines if you are not using a GPU
-gpus = tf.config.experimental.list_physical_devices('GPU')
-print("Num GPUs Available: ", len(
-    tf.config.experimental.list_physical_devices('GPU')))
+gpus = tf.config.experimental.list_physical_devices("GPU")
+print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices("GPU")))
 for gpu in gpus:
     tf.config.experimental.set_memory_growth(gpu, True)
 
@@ -23,7 +22,8 @@ workingDirectory = os.path.dirname(os.path.realpath(__file__))
 imgDimensions = 224
 
 images, labels, verImg, verLabels = processImages(
-    workingDirectory, imgDimensions)  # Load from loaddatset.py
+    workingDirectory, imgDimensions
+)  # Load from loaddatset.py
 
 
 def buildModel():
@@ -31,17 +31,22 @@ def buildModel():
     global images
     global verImg
     global verLabels
-    model = keras.Sequential([
-        keras.layers.Flatten(input_shape=(227, 227)),
-        keras.layers.Dense(512, activation='relu'),
-        keras.layers.Dense(1, activation=('sigmoid'))
-    ])
+    model = keras.Sequential(
+        [
+            keras.layers.Flatten(input_shape=(227, 227)),
+            keras.layers.Dense(512, activation="relu"),
+            keras.layers.Dense(1, activation=("sigmoid")),
+        ]
+    )
     print(model.summary())
-    model.compile(optimizer='adadelta',
-                  loss=tf.keras.losses.BinaryCrossentropy(),
-                  metrics=['accuracy'])
-    model.fit(images, labels, epochs=2, validation_data=(
-        verImg, verLabels), shuffle=True)
+    model.compile(
+        optimizer="adadelta",
+        loss=tf.keras.losses.BinaryCrossentropy(),
+        metrics=["accuracy"],
+    )
+    model.fit(
+        images, labels, epochs=2, validation_data=(verImg, verLabels), shuffle=True
+    )
 
 
 buildModel()
